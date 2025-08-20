@@ -1,0 +1,75 @@
+services:
+  pgsql:
+    image: ${app_name:?err}_pgsql
+    build: services/pgsql
+    container_name: ${app_name:?err}-pgsql
+    environment:
+      POSTGRES_DB: ${db_name:?err}
+      POSTGRES_USER: ${db_user:?err}
+      POSTGRES_PASSWORD: ${db_root_password:?err}
+      POSTGRES_TEST_DB: ${db_test_name:?err}
+      POSTGRES_TEST_USER: ${db_test_user:?err}
+      POSTGRES_TEST_USER_PASSWORD: ${db_test_user_password:?err}
+      TZ: ${timezone:?err}
+    volumes:
+      - ./var/pgsql/data:/var/lib/postgresql/data
+      - ./var/pgsql/exchange:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    networks:
+      - lck_network
+    restart: unless-stopped
+
+  php:
+    image: ${app_name:?err}_php
+    build: services/php
+    container_name: ${app_name:?err}-php
+    environment:
+      TZ: ${timezone:?err}
+    depends_on:
+      - pgsql
+    volumes:
+      - ${api_path:?err}:/var/www/api
+    networks:
+      - lck_network
+    restart: unless-stopped
+
+  nginx:
+    image: ${app_name:?err}_nginx
+    build: services/nginx
+    container_name: ${app_name:?err}-nginx
+    environment:
+      TZ: ${timezone:?err}
+    depends_on:
+      - php
+    volumes:
+      - ./services/nginx/conf/:/etc/nginx/conf.d/
+      - ./services/nginx/ssl/:/etc/nginx/ssl/
+      - ./var/log/webserver:/var/log/nginx
+      - ${api_path:?err}/public:/var/www/api/public
+    ports:
+      - 443:443
+      - 80:80
+    networks:
+      - lck_network
+    restart: unless-stopped
+
+  node:
+    image: ${app_name:?err}_node
+    build: services/node
+    container_name: ${app_name:?err}-node
+    environment:
+      TZ: ${timezone:?err}
+    depends_on:
+      - php
+    volumes:
+      - ${app_path:?err}:/var/www/app
+    ports:
+      - 3000:3000
+    networks:
+      - lck_network
+    restart: unless-stopped
+
+networks:
+  lck_network:
+    driver: bridge
