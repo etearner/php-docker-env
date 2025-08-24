@@ -22,7 +22,6 @@ RUN apt-get update && apt-get install -y \
     pdo \
     pdo_pgsql \
     pdo_mysql \
-    zip \
     opcache \
     mbstring \
     xml \
@@ -34,9 +33,6 @@ RUN pecl install xdebug \
     && pecl install apcu \
     && docker-php-ext-enable apcu
 
-# Set the right timezone
-RUN echo "date.timezone = $TZ" > /usr/local/etc/php/conf.d/timezone.ini
-
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
@@ -47,7 +43,7 @@ COPY ./conf/conf.ini /usr/local/etc/php/conf.d/conf.ini
 WORKDIR /var/www/api
 
 # Mark repo as safe (useful for containers mounting host volumes)
-RUN git config --global --add safe.directory /var/www/app
+RUN git config --global --add safe.directory /var/www/api
 
 EXPOSE 9000
 
